@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using IOSCalculator.Models;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 
@@ -6,83 +7,46 @@ namespace IOSCalculator
 {
     public class CalculatorViewModel : INotifyPropertyChanged
     {
-        private string display = "0";
-        private string fullExpression = string.Empty;
-        private double previousValue;
-        private string selectedOperator;
+        private readonly CalculatorModel calculatorModel = new();
 
-        public string Display
-        {
-            get => display;
-            set
-            {
-                display = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public string FullExpression
-        {
-            get => fullExpression;
-            set
-            {
-                fullExpression = value;
-                OnPropertyChanged();
-            }
-        }
+        public string Display => calculatorModel.Display;
+        public string FullExpression => calculatorModel.FullExpression;
 
         public ICommand NumberCommand => new RelayCommand(param =>
         {
-            if (Display == "0") Display = param.ToString();
-            else Display += param.ToString();
-            FullExpression += param.ToString();
+            calculatorModel.AppendNumber(param?.ToString() ?? string.Empty);
+            UpdateProperties();
         });
 
         public ICommand ClearCommand => new RelayCommand(_ =>
         {
-            Display = "0";
-            FullExpression = string.Empty;
-            previousValue = 0;
-            selectedOperator = null;
+            calculatorModel.Clear();
+            UpdateProperties();
         });
 
         public ICommand OperatorCommand => new RelayCommand(param =>
         {
-            if (double.TryParse(Display, out double value))
+            if (param is string operatorSymbol)
             {
-                previousValue = value;
-                selectedOperator = param.ToString();
-                FullExpression += $" {selectedOperator} ";
-                Display = "0";
+                calculatorModel.SetOperator(operatorSymbol);
+                UpdateProperties();
             }
         });
 
         public ICommand EqualsCommand => new RelayCommand(_ =>
         {
-            if (double.TryParse(Display, out double value))
-            {
-                FullExpression += $" = ";
-                switch (selectedOperator)
-                {
-                    case "+":
-                        Display = (previousValue + value).ToString();
-                        break;
-                    case "-":
-                        Display = (previousValue - value).ToString();
-                        break;
-                    case "*":
-                        Display = (previousValue * value).ToString();
-                        break;
-                    case "/":
-                        Display = value != 0 ? (previousValue / value).ToString() : "Error";
-                        break;
-                }
-                FullExpression += Display;
-            }
+            calculatorModel.Calculate();
+            UpdateProperties();
         });
 
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        private void UpdateProperties()
+        {
+            OnPropertyChanged(nameof(Display));
+            OnPropertyChanged(nameof(FullExpression));
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
